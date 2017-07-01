@@ -1,14 +1,19 @@
 /// Prefer to use `error_chain` instead of this macro.
 #[macro_export]
 macro_rules! error_chain_processed {
-    // Default values for `types`.
+    // Default values for `types` and `derive`.
     (
+        // FIXME does not work if either types or derive isn't empty
         types {}
+        derive {}
         $( $rest: tt )*
-    ) => {
+    ) =>{
         error_chain_processed! {
             types {
                 Error, ErrorKind, ResultExt, Result;
+            }
+            derive {
+                Debug;
             }
             $( $rest )*
         }
@@ -21,6 +26,7 @@ macro_rules! error_chain_processed {
         }
         $( $rest: tt )*
     ) => {
+        log_syntax!(rest: $($rest)*);
         error_chain_processed! {
             types {
                 $error_name, $error_kind_name,
@@ -37,6 +43,10 @@ macro_rules! error_chain_processed {
         types {
             $error_name:ident, $error_kind_name:ident,
             $result_ext_name:ident;
+        }
+
+        derive {
+            $($trait:ident),*;
         }
 
         links {
@@ -332,48 +342,59 @@ macro_rules! error_chain_processed {
 #[macro_export]
 macro_rules! error_chain_processing {
     (
-        ({}, $b:tt, $c:tt, $d:tt)
+        ({}, $b:tt, $c:tt, $d:tt, $e:tt)
         types $content:tt
         $( $tail:tt )*
     ) => {
         error_chain_processing! {
-            ($content, $b, $c, $d)
+            ($content, $b, $c, $d, $e)
             $($tail)*
         }
     };
     (
-        ($a:tt, {}, $c:tt, $d:tt)
+        ($a:tt, {}, $c:tt, $d:tt, $e:tt)
+        derive $content:tt
+        $( $tail:tt )*
+    ) => {
+        error_chain_processing! {
+            ($a, $content, $c, $d, $e)
+            $($tail)*
+        }
+    };
+    (
+        ($a:tt, $b:tt, {}, $d:tt, $e:tt)
         links $content:tt
         $( $tail:tt )*
     ) => {
         error_chain_processing! {
-            ($a, $content, $c, $d)
+            ($a, $b, $content, $d, $e)
             $($tail)*
         }
     };
     (
-        ($a:tt, $b:tt, {}, $d:tt)
+        ($a:tt, $b:tt, $c:tt, {}, $e:tt)
         foreign_links $content:tt
         $( $tail:tt )*
     ) => {
         error_chain_processing! {
-            ($a, $b, $content, $d)
+            ($a, $b, $c, $content, $e)
             $($tail)*
         }
     };
     (
-        ($a:tt, $b:tt, $c:tt, {})
+        ($a:tt, $b:tt, $c:tt, $d:tt, {})
         errors $content:tt
         $( $tail:tt )*
     ) => {
         error_chain_processing! {
-            ($a, $b, $c, $content)
+            ($a, $b, $c, $d, $content)
             $($tail)*
         }
     };
-    ( ($a:tt, $b:tt, $c:tt, $d:tt) ) => {
+    ( ($a:tt, $b:tt, $c:tt, $d:tt, $e:tt) ) => {
         error_chain_processed! {
             types $a
+            derive $e
             links $b
             foreign_links $c
             errors $d
@@ -387,7 +408,7 @@ macro_rules! error_chain_processing {
 macro_rules! error_chain {
     ( $( $block_name:ident { $( $block_content:tt )* } )* ) => {
         error_chain_processing! {
-            ({}, {}, {}, {})
+            ({}, {}, {}, {}, {})
             $($block_name { $( $block_content )* })*
         }
     };

@@ -1,4 +1,6 @@
 #![deny(missing_docs)]
+// TODO: remove
+#![feature(log_syntax)]
 
 //! A library for consistent and reliable error handling
 //!
